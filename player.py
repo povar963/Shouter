@@ -1,12 +1,10 @@
-import pygame as pg
-import math
-import random
 from settings import *
 
 pg.init()
 bullets = pg.sprite.Group()
 enemies = pg.sprite.Group()
 player_group = pg.sprite.Group()
+f1 = pg.font.Font(None, int(screen.get_width() / 20))
 
 
 class Enemy(pg.sprite.Sprite):
@@ -111,7 +109,7 @@ class BulletF(pg.sprite.Sprite):
     def update(self):
         self.rect.x += self.xm
         self.rect.y += self.ym
-        if not (-2000 < self.rect.x < 2000 and -2000 < self.rect.y < 2000):
+        if not (-100 < self.rect.x < screen.get_width() + 100 and -100 < self.rect.y < screen.get_height() + 100):
             self.kill()
         for enemy in enemies:
             if pg.sprite.collide_mask(self, enemy):
@@ -131,8 +129,8 @@ class Player(pg.sprite.Sprite):
         self.speed = 5
         self.counter = 0
         self.def_counter = 100
-        self.rect.x = screen.get_width() / 2 - self.rect.width
-        self.rect.y = screen.get_height() / 2 - self.rect.height
+        self.rect.x = screen.get_width() / 2 - self.rect.width / 2
+        self.rect.y = screen.get_height() / 2 - self.rect.height / 2
 
     def watch(self):
         x = self.rect.center[0]
@@ -200,25 +198,73 @@ class Player(pg.sprite.Sprite):
             self.counter -= 1
 
 
-def spawn(secs, player):
-    if secs == 400:
-        period = 200
-        enms = random.randint(63, 100)
-    elif secs == 200:
-        period = 200
-        enms = random.randint(42, 52)
-    elif secs == 100:
-        period = 100
-        enms = random.randint(32, 42)
-    elif secs == 50:
-        period = 50
-        enms = random.randint(20, 32)
-    elif secs == 0:
-        period = 50
-        enms = random.randint(8, 16)
-    else:
-        enms = 0
+def spawn(factor, player):
+    factor += 0.5
+    quantity = [10, 15]
+    enmes = random.randint(int(quantity[0]), int(quantity[1]))
     enemies_spawn = []
-    for i in range(enms):
+    for i in range(int(enmes * factor)):
         enemies_spawn.append(Enemy([enemies], player=player))
-    return enemies_spawn, period
+    return enemies_spawn
+
+
+def start():
+    global spawn_queue
+    player = Player([player_group])
+    start_time = time.time()
+    clock = pg.time.Clock()
+    elapsed = 0
+    period = spawn_period = 0
+    factor = 1
+    run = True
+    while run:
+        screen.fill('grey')
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                return 2
+        if True:
+            if spawn_toggle:
+                if int(elapsed) == spawn_period:
+                    spawn_queue = spawn(factor, player)
+                    countdown_queue = []
+                    current_period = period
+                    period = int(50 * factor)
+                    spawn_period += int(50 * factor)
+                    factor += 0.2
+                    for i in range(len(spawn_queue)):
+                        count = i + 1
+                        countdown_queue.append(current_period + (period // len(spawn_queue) * count))
+                if spawn_queue:
+                    if int(elapsed) in countdown_queue:
+                        i = countdown_queue.index(int(elapsed))
+                        spawn_queue[i].create()
+                        countdown_queue.pop(i)
+                        spawn_queue.pop(i)
+
+            enemies.update()
+            enemies.draw(screen)
+            bullets.update()
+            bullets.draw(screen)
+
+            player_group.update()
+            player_group.draw(screen)
+            if player.alive():
+                player.heath_bar()
+                elapsed = time.time() - start_time
+            else:
+                w = int(screen.get_height() / 3)
+                fy = int(screen.get_height() / 3) + w / 2
+                f2 = pg.font.Font(None, int(w / 2))
+                pg.draw.line(screen, "black", (0, fy), (screen.get_width(), fy), w)
+                text_end = f2.render(f"Lose", 1, (180, 0, 0))
+                screen.blit(text_end,
+                            (int(screen.get_width() / 2 - text_end.get_width() / 2), fy - text_end.get_height() / 2))
+                keys = pg.key.get_pressed()
+                if keys[pg.K_SPACE]:
+                    return 0
+                elif keys[pg.K_ESCAPE]:
+                    return 1
+            text_seconds = f1.render(f"{int(elapsed)}", 1, (180, 0, 0))
+            screen.blit(text_seconds, (screen.get_width() / 2 - text_seconds.get_width(), 10))
+            pg.display.flip()
+        clock.tick(75)

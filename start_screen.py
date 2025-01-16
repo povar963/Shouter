@@ -1,6 +1,4 @@
-import pygame as pg
-
-pg.init()
+from player import *
 
 
 class Button:
@@ -25,24 +23,27 @@ class Button:
 
     def update(self):
         self.draw()
-        mouse_x, mouse_y = pg.mouse.get_pos()
-        if self.x <= mouse_x <= self.lx + self.x and self.y <= mouse_y <= self.ly + self.y:
-            pass
 
-if __name__ == "__main__":
+class Button_play(Button):
+    def update(self):
+        self.draw()
+        mouse = pg.mouse.get_pressed()
+        mouse_x, mouse_y = pg.mouse.get_pos()
+        if self.x <= mouse_x <= self.lx + self.x and self.y <= mouse_y <= self.ly + self.y and mouse[0]:
+            return 1
+
+
+def menu_screen():
     run = True
-    size = w, h = 900, 900
-    screen = pg.display.set_mode(size)
-    button1 = Button("Start", "red", 10, h / 2 - 100, 180, 90, 0)
-    button2 = Button("Settings", "red", 10, h / 2 + 10, 180, 90, 1)
+    button_play = Button_play("Start", "red", 10, screen.get_height() / 2 - 100, 180, 90, 0)
+    button_settings = Button("Settings", "red", 10, screen.get_height() / 2 + 10, 180, 90, 1)
     while run:
         screen.fill('grey')
         for event in pg.event.get():
             if event.type == pg.QUIT:
-                run = False
-            if event.type == pg.MOUSEBUTTONUP:
-                button1.update()
-        button1.draw()
-        button2.draw()
+                return 2
+        play_res = button_play.update()
+        button_settings.update()
+        if play_res == 1:
+            return 1
         pg.display.flip()
-pg.quit()
