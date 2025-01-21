@@ -1,4 +1,4 @@
-from player import *
+from main_game import *
 
 
 class Button:
@@ -23,6 +23,7 @@ class Button:
 
     def update(self):
         self.draw()
+
 
 class Button_play(Button):
     def update(self):

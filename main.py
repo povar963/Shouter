@@ -1,5 +1,3 @@
-from ctypes import HRESULT
-
 from start_screen import *
 
 pg.init()

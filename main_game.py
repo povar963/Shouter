@@ -7,15 +7,26 @@ player_group = pg.sprite.Group()
 f1 = pg.font.Font(None, int(screen.get_width() / 20))
 
 
+class Tile(pg.sprite.Sprite):
+    img = pg.image.load("./old textures/map.png")
+
+    def __init__(self, x, y):
+        super().__init__(*[tiles, all_sprites])
+        self.image = self.img
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+
+
 class Enemy(pg.sprite.Sprite):
     img = pg.image.load("./1.png")
 
-    def __init__(self, *groups: list, player):
-        super().__init__(*groups)
+    def __init__(self, player):
+        super().__init__(*[all_sprites, enemies])
         self.image = self.img
         self.rect = self.image.get_rect()
-        self.rect.x = -self.rect.width
-        self.rect.y = -self.rect.height
+        self.rect.x = -1000
+        self.rect.y = -1000
         self.player = player
         self.is_alive = False
 
@@ -24,16 +35,20 @@ class Enemy(pg.sprite.Sprite):
         y = random.randint(70, screen.get_height() - 70)
         self.rect.x = x
         self.rect.y = y
+
+        while pg.sprite.collide_mask(self, self.player):
+            x = random.randint(70, screen.get_width() - 70)
+            y = random.randint(70, screen.get_height() - 70)
+            self.rect.x = x
+            self.rect.y = y
+
         self.counter = 100
         self.is_alive = True
-
-        if pg.sprite.collide_mask(self, self.player):
-            self.kill()
 
     def shoot(self):
         x = self.rect.center[0]
         y = self.rect.center[1]
-        BulletE([bullets], x=x, y=y, player=self.player)
+        BulletE(x=x, y=y, player=self.player)
 
     def watch(self):
         x = self.rect.center[0]
@@ -61,12 +76,12 @@ class Enemy(pg.sprite.Sprite):
 class BulletE(pg.sprite.Sprite):
     img = pg.image.load("./Bullet.png")
 
-    def __init__(self, *groups: list, x, y, player):
-        super().__init__(*groups)
+    def __init__(self, x, y, player):
+        super().__init__(*[all_sprites, bullets])
         mouse_x, mouse_y = player.rect.center
         rel_x, rel_y = mouse_x - x, mouse_y - y
         self.angle = math.atan2(rel_y, rel_x)
-        self.speed = 20
+        self.speed = player_speed
 
         self.xm = self.speed * math.cos(self.angle)
         self.ym = self.speed * math.sin(self.angle)
@@ -93,8 +108,8 @@ class BulletE(pg.sprite.Sprite):
 class BulletF(pg.sprite.Sprite):
     img = pg.image.load("./Bullet.png")
 
-    def __init__(self, *groups: list, x, y):
-        super().__init__(*groups)
+    def __init__(self, x, y):
+        super().__init__(*[bullets, all_sprites])
         mouse_x, mouse_y = pg.mouse.get_pos()
         rel_x, rel_y = mouse_x - x, mouse_y - y
         self.angle = math.atan2(rel_y, rel_x)
@@ -121,9 +136,10 @@ class Player(pg.sprite.Sprite):
     img = pg.image.load("./gg.png")
     f1 = pg.font.Font(None, 36)
 
-    def __init__(self, *groups: list):
-        super().__init__(*groups)
-        self.health = 3
+    def __init__(self):
+        super().__init__(player_group)
+        self.health = max_health
+        self.max_health = max_health
         self.image = self.img
         self.rect = self.image.get_rect()
         self.speed = 5
@@ -147,7 +163,7 @@ class Player(pg.sprite.Sprite):
         fy = self.rect.center[1] - 100
         pg.draw.line(screen, "DarkRed", (fx, fy), (lx, fy), 10)
         fx = self.rect.center[0] - 58
-        lx = fx + (116 * (self.health / 3))
+        lx = fx + (116 * (self.health / self.max_health))
         pg.draw.line(screen, "red", (fx, fy), (lx, fy), 6)
         fx = fx - 20
         lx = fx + 10
@@ -167,22 +183,22 @@ class Player(pg.sprite.Sprite):
         x = self.rect.center[0]
         y = self.rect.center[1]
         if self.counter <= 0:
-            BulletF([bullets], x=x, y=y)
+            BulletF(x=x, y=y)
             self.counter = self.def_counter
 
     def control(self, key):
         if key[pg.K_w]:
-            if self.rect.center[1] - (self.img.get_height() / 2 + 10) + self.speed >= 0:
-                self.rect.y -= self.speed
+            for sprite in all_sprites:
+                sprite.rect.y += self.speed
         if key[pg.K_s]:
-            if self.rect.center[1] + (self.img.get_height() / 2) + self.speed <= screen.get_height():
-                self.rect.y += self.speed
+            for sprite in all_sprites:
+                sprite.rect.y -= self.speed
         if key[pg.K_d]:
-            if self.rect.center[0] + (self.img.get_width() / 2) + self.speed <= screen.get_width():
-                self.rect.x += self.speed
+            for sprite in all_sprites:
+                sprite.rect.x -= self.speed
         if key[pg.K_a]:
-            if self.rect.center[0] - (self.img.get_width() / 2 + 10) + self.speed >= 0:
-                self.rect.x -= self.speed
+            for sprite in all_sprites:
+                sprite.rect.x += self.speed
 
     def update(self):
         keys = pg.key.get_pressed()
@@ -198,49 +214,62 @@ class Player(pg.sprite.Sprite):
             self.counter -= 1
 
 
-def spawn(factor, player):
+def create_list(factor, player):
     factor += 0.5
     quantity = [10, 15]
-    enmes = random.randint(int(quantity[0]), int(quantity[1]))
+    random_value = random.randint(int(quantity[0]), int(quantity[1]))
     enemies_spawn = []
-    for i in range(int(enmes * factor)):
-        enemies_spawn.append(Enemy([enemies], player=player))
+    for i in range(int(random_value * factor)):
+        enemies_spawn.append(Enemy(player=player))
     return enemies_spawn
 
 
 def start():
-    global spawn_queue
-    player = Player([player_group])
+    global spawn_queue, countdown_queue
+    player = Player()
     start_time = time.time()
     clock = pg.time.Clock()
+    healing_timing = 0
     elapsed = 0
-    period = spawn_period = 0
-    factor = 1
+    spawn_period = 0
+    factor = 3
+    tiles_group = []
+    for i in range(10):
+        tiles_group.append(Tile(i * 500, i * 500))
     run = True
     while run:
         screen.fill('grey')
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 return 2
-        if True:
-            if spawn_toggle:
+        if True:  # Run
+            if spawn_toggle:  # Spawn
                 if int(elapsed) == spawn_period:
-                    spawn_queue = spawn(factor, player)
+                    spawn_queue = create_list(factor, player)
                     countdown_queue = []
-                    current_period = period
                     period = int(50 * factor)
                     spawn_period += int(50 * factor)
-                    factor += 0.2
+                    factor += 0.1
                     for i in range(len(spawn_queue)):
                         count = i + 1
-                        countdown_queue.append(current_period + (period // len(spawn_queue) * count))
+                        time_spawn = spawn_period - period + (period / len(spawn_queue) * count)
+                        countdown_queue.append(round(time_spawn, 1))
                 if spawn_queue:
-                    if int(elapsed) in countdown_queue:
-                        i = countdown_queue.index(int(elapsed))
+                    if round(elapsed, 1) in countdown_queue:
+                        i = countdown_queue.index(round(elapsed, 1))
                         spawn_queue[i].create()
                         countdown_queue.pop(i)
                         spawn_queue.pop(i)
 
+            if heal_allowed:
+                if player.health != max_health:
+                    if healing_timing == int(elapsed):
+                        player.health += heal
+                        healing_timing = int(elapsed) + healing_timer
+                else:
+                    healing_timing = int(elapsed) + healing_timer
+
+            tiles.draw(screen)
             enemies.update()
             enemies.draw(screen)
             bullets.update()
@@ -267,4 +296,5 @@ def start():
             text_seconds = f1.render(f"{int(elapsed)}", 1, (180, 0, 0))
             screen.blit(text_seconds, (screen.get_width() / 2 - text_seconds.get_width(), 10))
             pg.display.flip()
+            print(clock.get_fps())
         clock.tick(75)
