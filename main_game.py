@@ -8,7 +8,7 @@ f1 = pg.font.Font(None, int(screen.get_width() / 20))
 
 
 class Tile(pg.sprite.Sprite):
-    img = pg.image.load("./old textures/map.png")
+    img = pg.image.load("./txtures/bg.png")
 
     def __init__(self, x, y):
         super().__init__(*[tiles, all_sprites])
@@ -17,9 +17,16 @@ class Tile(pg.sprite.Sprite):
         self.rect.x = x
         self.rect.y = y
 
+    def update(self):
+        if self.rect.bottom < 0 or self.rect.right < 0:
+            self.kill()
+        if self.rect.top > screen.get_height() or self.rect.left > screen.get_width():
+            self.kill()
+
+
 
 class Enemy(pg.sprite.Sprite):
-    img = pg.image.load("./1.png")
+    img = pg.image.load("txtures/1.png")
 
     def __init__(self, player):
         super().__init__(*[all_sprites, enemies])
@@ -74,7 +81,7 @@ class Enemy(pg.sprite.Sprite):
 
 
 class BulletE(pg.sprite.Sprite):
-    img = pg.image.load("./Bullet.png")
+    img = pg.image.load("txtures/Bullet.png")
 
     def __init__(self, x, y, player):
         super().__init__(*[all_sprites, bullets])
@@ -106,7 +113,7 @@ class BulletE(pg.sprite.Sprite):
 
 
 class BulletF(pg.sprite.Sprite):
-    img = pg.image.load("./Bullet.png")
+    img = pg.image.load("txtures/Bullet.png")
 
     def __init__(self, x, y):
         super().__init__(*[bullets, all_sprites])
@@ -133,7 +140,7 @@ class BulletF(pg.sprite.Sprite):
 
 
 class Player(pg.sprite.Sprite):
-    img = pg.image.load("./gg.png")
+    img = pg.image.load("txtures/gg.png")
     f1 = pg.font.Font(None, 36)
 
     def __init__(self):
@@ -190,15 +197,19 @@ class Player(pg.sprite.Sprite):
         if key[pg.K_w]:
             for sprite in all_sprites:
                 sprite.rect.y += self.speed
+            start_tile_pos[1] -= self.speed
         if key[pg.K_s]:
             for sprite in all_sprites:
                 sprite.rect.y -= self.speed
+            start_tile_pos[1] += self.speed
         if key[pg.K_d]:
             for sprite in all_sprites:
                 sprite.rect.x -= self.speed
+            start_tile_pos[0] += self.speed
         if key[pg.K_a]:
             for sprite in all_sprites:
                 sprite.rect.x += self.speed
+            start_tile_pos[0] -= self.speed
 
     def update(self):
         keys = pg.key.get_pressed()
@@ -224,8 +235,23 @@ def create_list(factor, player):
     return enemies_spawn
 
 
+def fill_bg():
+    for tile in tiles:
+        tile.kill()
+    count_x = round(screen.get_width() / Tile.img.get_width() + 0.4)
+    count_y = round(screen.get_height() / Tile.img.get_height() + 0.4)
+    dx = round((0 - start_tile_pos[0]) / Tile.img.get_width() + 0.4)
+    dy = round((0 - start_tile_pos[1]) / Tile.img.get_height() + 0.4)
+    for i in range(count_x + 2):
+        for j in range(count_y + 2):
+            x = j * Tile.img.get_width() - start_tile_pos[0]
+            y = i * Tile.img.get_height() - start_tile_pos[1]
+            Tile(x - dx * Tile.img.get_width(), y - dy * Tile.img.get_height())
+
+
 def start():
     global spawn_queue, countdown_queue
+
     player = Player()
     start_time = time.time()
     clock = pg.time.Clock()
@@ -233,12 +259,8 @@ def start():
     elapsed = 0
     spawn_period = 0
     factor = 3
-    tiles_group = []
-    for i in range(10):
-        tiles_group.append(Tile(i * 500, i * 500))
     run = True
     while run:
-        screen.fill('grey')
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 return 2
@@ -268,13 +290,17 @@ def start():
                         healing_timing = int(elapsed) + healing_timer
                 else:
                     healing_timing = int(elapsed) + healing_timer
-
+            #Отрисовка bg
+            fill_bg()
             tiles.draw(screen)
+            tiles.update()
+            # Отрисовка Врагов
             enemies.update()
             enemies.draw(screen)
+            # Отрисовка Снарядов
             bullets.update()
             bullets.draw(screen)
-
+            #Отрисовка Игрока
             player_group.update()
             player_group.draw(screen)
             if player.alive():
@@ -296,5 +322,4 @@ def start():
             text_seconds = f1.render(f"{int(elapsed)}", 1, (180, 0, 0))
             screen.blit(text_seconds, (screen.get_width() / 2 - text_seconds.get_width(), 10))
             pg.display.flip()
-            print(clock.get_fps())
         clock.tick(75)
