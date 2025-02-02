@@ -1,30 +1,6 @@
 from main_game import *
 
 
-class Button:
-    f1 = pg.font.Font(None, 36)
-
-    def __init__(self, text: str, color: str, x: int, y: int, lx: int, ly: int, mode):
-        self.text = text
-        self.color = color
-        self.x = x
-        self.lx = lx
-        self.y = y
-        self.ly = ly
-        self.mode = mode
-
-    def draw(self):
-        btn = pg.draw.rect(screen, self.color, ((self.x, self.y), (self.lx, self.ly)), 2)
-        text1 = self.f1.render(self.text, 1, (0, 180, 0))
-        x = btn.width / 2 + self.x - text1.get_width() / 2
-        y = btn.height / 2 + self.y - text1.get_height() / 2
-
-        screen.blit(text1, (x, y))
-
-    def update(self):
-        self.draw()
-
-
 class Button_play(Button):
     def update(self):
         self.draw()
@@ -33,18 +9,28 @@ class Button_play(Button):
         if self.x <= mouse_x <= self.lx + self.x and self.y <= mouse_y <= self.ly + self.y and mouse[0]:
             return 1
 
+class Button_settings(Button):
+    def update(self):
+        self.draw()
+        mouse = pg.mouse.get_pressed()
+        mouse_x, mouse_y = pg.mouse.get_pos()
+        if self.x <= mouse_x <= self.lx + self.x and self.y <= mouse_y <= self.ly + self.y and mouse[0]:
+            return 0
+
 
 def menu_screen():
     run = True
-    button_play = Button_play("Start", "red", 10, screen.get_height() / 2 - 100, 180, 90, 0)
-    button_settings = Button("Settings", "red", 10, screen.get_height() / 2 + 10, 180, 90, 1)
+    button_play = Button_play("Start", "green", 10, screen.get_height() / 2 - 100, 180, 90)
+    button_settings = Button_settings("Settings", "green", 10, screen.get_height() / 2 + 10, 180, 90)
     while run:
-        screen.fill('grey')
+        screen.fill('black')
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 return 2
         play_res = button_play.update()
-        button_settings.update()
+        sett_res = button_settings.update()
         if play_res == 1:
             return 1
+        if sett_res == 0:
+            return 0
         pg.display.flip()

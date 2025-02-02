@@ -1,4 +1,4 @@
-from settings import *
+from settings_screen import *
 
 pg.init()
 bullets = pg.sprite.Group()
@@ -8,11 +8,11 @@ f1 = pg.font.Font(None, int(screen.get_width() / 20))
 
 
 class Tile(pg.sprite.Sprite):
-    img = pg.image.load("./txtures/bg.png")
+    imgs = [pg.image.load("./txtures/bg2.png")]
 
     def __init__(self, x, y):
         super().__init__(*[tiles, all_sprites])
-        self.image = self.img
+        self.image = self.imgs[random.randint(0, 0)]
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
@@ -104,11 +104,7 @@ class BulletE(pg.sprite.Sprite):
         if not (-2000 < self.rect.x < 2000 and -2000 < self.rect.y < 2000):
             self.kill()
         if pg.sprite.collide_mask(self, self.player):
-            if self.player.health == 1:
-                self.player.health = 0
-                self.player.kill()
-            else:
-                self.player.health -= 1
+            self.player.health -= 1
             self.kill()
 
 
@@ -143,9 +139,10 @@ class Player(pg.sprite.Sprite):
     img = pg.image.load("txtures/gg.png")
     f1 = pg.font.Font(None, 36)
 
-    def __init__(self):
+    def __init__(self, diff):
         super().__init__(player_group)
         self.health = max_health
+        self.difficult = diff
         self.max_health = max_health
         self.image = self.img
         self.rect = self.image.get_rect()
@@ -178,8 +175,8 @@ class Player(pg.sprite.Sprite):
             pg.draw.line(screen, "green", (fx, fy), (lx, fy), 10)
         else:
             pg.draw.line(screen, "red", (fx, fy), (lx, fy), 10)
-        text1 = f1.render(f"hp:{self.health} cd:{self.counter}", 1, (180, 0, 0))
-        screen.blit(text1, (10, screen.get_height() - 30))
+        text1 = f1.render(f"hp:{round(self.health, 2)} cd:{self.counter}", 1, (180, 0, 0))
+        screen.blit(text1, (10, screen.get_height() - f1.get_height()))
 
     def laser(self):
         mouse_x, mouse_y = pg.mouse.get_pos()
@@ -223,6 +220,9 @@ class Player(pg.sprite.Sprite):
                 self.shoot()
         if self.counter > 0:
             self.counter -= 1
+        if self.health <= 0:
+            self.health = 0
+            self.kill()
 
 
 def create_list(factor, player):
@@ -238,21 +238,21 @@ def create_list(factor, player):
 def fill_bg():
     for tile in tiles:
         tile.kill()
-    count_x = round(screen.get_width() / Tile.img.get_width() + 0.4)
-    count_y = round(screen.get_height() / Tile.img.get_height() + 0.4)
-    dx = round((0 - start_tile_pos[0]) / Tile.img.get_width() + 0.4)
-    dy = round((0 - start_tile_pos[1]) / Tile.img.get_height() + 0.4)
-    for i in range(count_x + 2):
-        for j in range(count_y + 2):
-            x = j * Tile.img.get_width() - start_tile_pos[0]
-            y = i * Tile.img.get_height() - start_tile_pos[1]
-            Tile(x - dx * Tile.img.get_width(), y - dy * Tile.img.get_height())
+    count_x = round(screen.get_width() / Tile.imgs[0].get_width() + 0.4)
+    count_y = round(screen.get_height() / Tile.imgs[0].get_height() + 0.4)
+    dx = round((0 - start_tile_pos[0]) / Tile.imgs[0].get_width() + 0.4)
+    dy = round((0 - start_tile_pos[1]) / Tile.imgs[0].get_height() + 0.4)
+    for i in range(count_y + 1):
+        for j in range(count_x + 1):
+            x = j * Tile.imgs[0].get_width() - start_tile_pos[0]
+            y = i * Tile.imgs[0].get_height() - start_tile_pos[1]
+            Tile(x - dx * Tile.imgs[0].get_width(), y - dy * Tile.imgs[0].get_height())
 
 
-def start():
-    global spawn_queue, countdown_queue
+def start(diff):
+    global spawn_queue
 
-    player = Player()
+    player = Player(diff)
     start_time = time.time()
     clock = pg.time.Clock()
     healing_timing = 0
@@ -284,10 +284,14 @@ def start():
                         spawn_queue.pop(i)
 
             if heal_allowed:
-                if player.health != max_health:
+                if player.health <= max_health:
                     if healing_timing == int(elapsed):
-                        player.health += heal
-                        healing_timing = int(elapsed) + healing_timer
+                        if player.health + heal / diff <= max_health:
+                            player.health += heal / diff
+                            healing_timing = int(elapsed) + healing_timer
+                        else:
+                            player.health = max_health
+
                 else:
                     healing_timing = int(elapsed) + healing_timer
             #Отрисовка bg
