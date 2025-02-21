@@ -1,4 +1,3 @@
-"# Shouter" 
 Я сделал игру где нужно стрелять в квадраты
 ![изображение](https://github.com/user-attachments/assets/c93d98ab-f0a2-437e-8b0f-35e4266b1054)
 вот как она выглядит
